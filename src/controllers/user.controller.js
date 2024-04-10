@@ -5,7 +5,10 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerUser = asyncHandler(async (req, res) => {
+
   const { fullName, username, email, password } = req.body;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (
     [fullName, email, username, password].some((field) => field?.trim() === "")
@@ -13,7 +16,20 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  const existedUser = User.findOne({
+  if(username.length > 10) {
+    throw new ApiError(400, "username should be 10 character");
+  }
+
+  if(password.length < 6) {
+    throw new ApiError(400, "password should be of 8 characters");
+  }
+
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Invalid email format");
+  }
+  
+
+  const existedUser = await User.findOne({
     $or: [{ username }, { email }],
   });
 
@@ -23,7 +39,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //   console.log(req.files);
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+  let coverImageLocalPath;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
